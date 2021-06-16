@@ -1,0 +1,23 @@
+---
+# Ansible role
+#
+# Role pro instalaci Unison a nastavení synchronizační služby
+#
+
+# Instalace Unison defaultně do /usr/local/bin
+- name: Instalace balíku Unison
+  apt:
+    name: "unison"
+    state: present
+
+# Vytvoření uživatele a skupiny, vytvoření podpůrných adresářů, logrotate
+- include_tasks: user_and_files.yml
+
+# Zapnutí unison služby, nastavení ssh přístupu
+- include_tasks: twopoint_sync.yml
+  with_items: '{{ unison_twopoint_synclist }}'
+  when: unison_twopoint_synclist is defined
+  loop_control:
+    loop_var: sync_item
+
+...

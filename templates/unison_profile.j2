@@ -1,0 +1,26 @@
+root = {{ sync_item.root1 }}
+root = {{ sync_item.root2 }}
+{% for path in sync_item.ignore_paths|default([]) %}
+ignore = {{ path.style|default('Path') }} {{ path.pattern }}
+{% endfor %}
+
+sshargs = -i {{ unison.home }}/.ssh/id_ecdsa
+servercmd = sudo {{ unison.installpath }}
+
+auto = true
+batch = true
+silent = true
+prefer = newer
+
+confirmbigdel = true
+backup = Name *
+backuploc = central
+backupdir = {{ sync_item.backupdir }}
+
+owner = true
+group = true
+times = true
+
+{% if sync_item.logfile is defined %}
+logfile = {{ sync_item.logfile }}
+{% endif %}

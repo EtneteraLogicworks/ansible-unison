@@ -1,0 +1,16 @@
+---
+# Ansible vars file
+#
+# Default proměnné pro roli unison
+
+unison:
+  installpath: '/usr/bin/unison'
+  user: 'unison'
+  group: 'unison'
+  groups: 'ssh'
+  home: '/var/lib/unison'
+  directory: '/root/.unison'
+  logdir: '/var/log/unison'
+  logfile: '/var/log/unison/unison.log'
+
+...

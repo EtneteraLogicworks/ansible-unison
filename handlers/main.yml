@@ -1,0 +1,12 @@
+---
+# Ansible handler
+#
+# Handler pro restartování všech unison služeb
+
+- name: restart unison
+  service:
+    name: 'unison_sync-{{ item.name }}'
+    state: restarted
+  with_items: '{{ unison_twopoint_synclist }}'
+
+...

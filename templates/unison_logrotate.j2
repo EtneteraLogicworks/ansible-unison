@@ -1,0 +1,12 @@
+{% for item in unison_twopoint_synclist %}
+{{ item.logfile }}
+{% endfor %}
+{
+    copytruncate
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    create 640 {{ unison.user }} adm
+}

@@ -1,0 +1,47 @@
+---
+# Ansible included play
+#
+# Vytvoření uživatele a skupiny pro spouštění Unison, vytvoření podpůrných adresářů
+
+- name: Vytvoření unison skupiny
+  group:
+    name: '{{ unison.group }}'
+    system: yes
+
+- name: Vytvoření unison uživatele
+  user:
+    name: '{{ unison.user }}'
+    system: yes
+    group: '{{ unison.group }}'
+    groups: '{{ unison.groups }}'
+    shell: '/bin/bash'
+    home: '{{ unison.home }}'
+
+- name: Povolení spouštění unison skrz sudo
+  lineinfile:
+    dest: '/etc/sudoers'
+    regexp: '^[\s]*{{ unison.user }}\b'
+    line:   "{{ unison.user }} ALL=(ALL) NOPASSWD:{{ unison.installpath }}"
+    validate: 'visudo -cf %s'
+
+- name: Vytvoření adresářů pro Unison
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ unison.user }}'
+    group: '{{ unison.group }}'
+    mode: '0750'
+  with_items:
+    - '{{ unison.directory }}'
+    - '{{ unison.logdir }}'
+
+- name: logrotate konfigurace pro demona
+  template:
+    dest: '/etc/logrotate.d/unison'
+    src: 'unison_logrotate.j2'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  when: unison_twopoint_synclist is defined
+
+...

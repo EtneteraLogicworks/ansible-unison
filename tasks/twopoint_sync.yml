@@ -1,0 +1,84 @@
+---
+# Ansible included play
+#
+# Zapnutí systemd unison služby pro synchronizaci dvou bodů
+
+# Zajištění ssh přístupu
+- include_tasks: 'includes/ssh_fingerprints/main.yml'
+  vars:
+    ssh_fingerprints:
+      user: '{{ unison.user }}'
+      home: '{{ unison.home }}'
+      global: yes
+      target_group:
+        - '{{ sync_item.remote }}'
+  when: sync_item.remote is defined
+  tags:
+    - ssh_fingerprints
+
+- name: Zkopírovat profil s konfigurací
+  template:
+    dest: '{{ unison.directory }}/{{ sync_item.name }}'
+    src: 'unison_profile.j2'
+    owner: '{{ unison.user }}'
+    group: '{{ unison.group }}'
+    mode: '0644'
+  notify:
+   - restart unison
+
+- name: Vytvoření lokálního backup adresáře
+  file:
+    path: '{{ sync_item.backupdir }}'
+    state: directory
+    owner: '{{ unison.user }}'
+    group: '{{ unison.group }}'
+    mode: '0750'
+
+- name: Vytvoření vzdáleného backup adresáře
+  file:
+    path: '{{ sync_item.backupdir }}'
+    state: directory
+    owner: '{{ unison.user }}'
+    group: '{{ unison.group }}'
+    mode: '0750'
+  delegate_to: '{{ sync_item.remote }}'
+  when: sync_item.remote is defined
+
+- name: Nastavení lokálního uklízení backupu
+  cron:
+    name: 'Cleanup backup for {{ sync_item.name }}'
+    cron_file: 'unison_backup_cleanup'
+    job: >-
+      find '{{ sync_item.backupdir }}' -type f -ctime "+{{ sync_item.backup_retain|default(90) }}" -delete;
+      find '{{ sync_item.backupdir }}' -mindepth 1 -type d -empty -delete
+    user: root
+    hour: "{{ 23 |random(seed=sync_item.name) }}"
+    minute: "{{ 59 |random(seed=sync_item.name) }}"
+
+- name: Nastavení vzdáleného uklízení backupu
+  cron:
+    name: 'Cleanup backup for {{ sync_item.name }}'
+    cron_file: 'unison_backup_cleanup'
+    job: >-
+      find '{{ sync_item.backupdir }}' -type f -ctime "+{{ sync_item.backup_retain|default(90) }}" -delete;
+      find '{{ sync_item.backupdir }}' -mindepth 1 -type d -empty -delete
+    user: root
+    hour: "{{ 23 |random(seed=sync_item.name) }}"
+    minute: "{{ 59 |random(seed=sync_item.name) }}"
+  delegate_to: '{{ sync_item.remote }}'
+  when: sync_item.remote is defined
+
+- name: Zkopírovat systemd service soubor
+  template:
+    src: 'unison_sync-service.j2'
+    dest: '/etc/systemd/system/unison_sync-{{ sync_item.name }}.service'
+    mode: '0644'
+
+- name: Konfigurace systemd
+  systemd:
+    daemon_reload: yes
+    name: 'unison_sync-{{ sync_item.name }}'
+    state: started
+    enabled: yes
+
+...
